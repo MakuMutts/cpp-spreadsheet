@@ -12,9 +12,9 @@ public:
 
     virtual Value GetValue() const = 0;
     virtual std::string GetText() const = 0;
-    
-    virtual std::vector<Position> GetReferencedCells() const { 
-        return {}; 
+
+    virtual std::vector<Position> GetReferencedCells() const {
+        return {};
     }
 
     virtual bool IsCacheValid() const {
@@ -26,22 +26,22 @@ public:
 
 class Cell::EmptyImpl : public Impl {
 public:
-    Value GetValue() const override { 
-        return ""; 
+    Value GetValue() const override {
+        return "";
     }
 
-    std::string GetText() const override { 
-        return ""; 
+    std::string GetText() const override {
+        return "";
     }
 };
 
 class Cell::TextImpl : public Impl {
 public:
-    TextImpl(std::string text) 
+    TextImpl(std::string text)
         : text_(std::move(text))
     {
-        if (text_.empty()) { 
-            throw std::logic_error(""); 
+        if (text_.empty()) {
+            throw std::logic_error("");
         }
     }
 
@@ -108,27 +108,28 @@ private:
     mutable std::optional<FormulaInterface::Value> cache_;
 };
 
-Cell::Cell(Sheet& sheet) : 
+Cell::Cell(Sheet& sheet) :
     impl_(std::make_unique<EmptyImpl>()),
     sheet_(sheet)
-{}
+{
+}
 
 Cell::~Cell() {}
 
 void Cell::Set(std::string text) {
     std::unique_ptr<Impl> temp_impl;
 
-    if(text.empty()) {
+    if (text.empty()) {
         temp_impl = std::make_unique<EmptyImpl>();
     }
-    else if(text.size() > 1 && text.at(0) == FORMULA_SIGN) {
+    else if (text.size() > 1 && text.at(0) == FORMULA_SIGN) {
         temp_impl = std::make_unique<FormulaImpl>(std::move(text), sheet_);
     }
     else {
         temp_impl = std::make_unique<TextImpl>(std::move(text));
     }
 
-    if(HasCircularDependency(*temp_impl)) {
+    if (HasCircularDependency(*temp_impl)) {
         throw CircularDependencyException("");
     }
     impl_ = std::move(temp_impl);
@@ -138,7 +139,7 @@ void Cell::Set(std::string text) {
 }
 
 void Cell::Clear() {
-    impl_ = std::make_unique<EmptyImpl>();
+    Set("");
 }
 
 Cell::Value Cell::GetValue() const {
@@ -196,14 +197,14 @@ void Cell::UpdateDependencies() {
     referenced_cells_.clear();
 
     for (const auto& position : impl_->GetReferencedCells()) {
-        
+
         Cell* refrenced = sheet_.GetCellPtr(position);
-        
+
         if (!refrenced) {
             sheet_.SetCell(position, "");
             refrenced = sheet_.GetCellPtr(position);
         }
-        
+
         referenced_cells_.insert(refrenced);
         refrenced->dependent_cells_.insert(this);
     }
